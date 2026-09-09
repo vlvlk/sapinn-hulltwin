@@ -1,0 +1,54 @@
+[project]
+name = "hulltwin"
+version = "0.1.0"
+description = "PINN-HullTwin: hydrodynamic digital twin with fouling self-diagnostics and closed-loop speed optimisation"
+readme = "README.md"
+requires-python = ">=3.14"
+license = { text = "Proprietary" }
+authors = [{ name = "PINN-HullTwin team" }]
+dependencies = [
+    "numpy>=2.3",
+    "scipy>=1.16",
+    "pandas>=2.3",
+    "pydantic>=2.11",
+    "torch>=2.10",
+    "matplotlib>=3.10",
+]
+
+[tool.uv.sources]
+# CPU-only torch: the MVP trains tiny MLPs, CUDA wheels would be a multi-GB waste
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9",
+    "ruff>=0.14",
+    "mypy>=1.18",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hulltwin"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = false
+ignore_missing_imports = true
