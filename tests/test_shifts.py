@@ -20,6 +20,16 @@ from hulltwin.data.shifts import (
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = REPO_ROOT / "data/external/power_consumption_upload/synthetic_data"
 
+#: The Shifts release (train.csv is ~109 MB) is gitignored and therefore not
+#: available in CI; tests that strictly need the released data are skipped
+#: there, mirroring the "Shifts data absent -> graceful skip" policy of the
+#: notebooks in .github/workflows/ci.yml.
+_HAS_RELEASE_DATA = (DATA_DIR / "train.csv").exists()
+requires_release = pytest.mark.skipif(
+    not _HAS_RELEASE_DATA,
+    reason="Shifts release data not present; run scripts/download_shifts.py",
+)
+
 
 def _tiny_shifts_frame(n: int = 40, seed: int = 0) -> pd.DataFrame:
     """Raw-schema Shifts-like frame (exact CSV column names)."""
@@ -42,6 +52,14 @@ def _tiny_shifts_frame(n: int = 40, seed: int = 0) -> pd.DataFrame:
     )
 
 
+def _write_tiny_split(tmp_path: Path, raw: pd.DataFrame) -> None:
+    """Materialise a raw-schema frame as a one-split Shifts layout."""
+    path = tmp_path / "synthetic_data" / "train.csv"
+    path.parent.mkdir(parents=True)
+    raw.to_csv(path, index=False)
+
+
+@requires_release
 def test_load_split_synthetic_train_has_adapter_schema() -> None:
     df = load_split("train", DATA_DIR)
     expected = {
@@ -66,8 +84,10 @@ def test_load_split_missing_file_raises(tmp_path: Path) -> None:
         load_split("train", tmp_path)
 
 
-def test_design_matrix_is_nonnegative_and_finite() -> None:
-    df = load_split("train", DATA_DIR).head(500)
+def test_design_matrix_is_nonnegative_and_finite(tmp_path: Path) -> None:
+    """Runs on a synthetic Shifts-like frame, no release data required."""
+    _write_tiny_split(tmp_path, _tiny_shifts_frame(500, seed=2))
+    df = load_split("train", tmp_path)
     a = ShiftsPowerModel().design_matrix(df)
     assert np.isfinite(a).all()
     assert (a >= 0).all()  # V^3, friction power, wave power, draft: all >= 0
@@ -101,12 +121,14 @@ def test_model_recovers_power_generated_by_same_structure() -> None:
     np.testing.assert_allclose(model._coef[3], 30.0, rtol=0.2)  # draft gain
 
 
-def test_predict_before_fit_raises() -> None:
-    df = load_split("train", DATA_DIR).head(50)
+def test_predict_before_fit_raises(tmp_path: Path) -> None:
+    _write_tiny_split(tmp_path, _tiny_shifts_frame(50, seed=3))
+    df = load_split("train", tmp_path)
     with pytest.raises(RuntimeError, match="not fitted"):
         ShiftsPowerModel().predict(df)
 
 
+@requires_release
 def test_benchmark_runs_on_release_and_beats_naive_v3() -> None:
     """Stage-5 acceptance: the physics model must beat a pure V^3 baseline
     (which ignores fouling and weather) on the in-domain dev split."""
