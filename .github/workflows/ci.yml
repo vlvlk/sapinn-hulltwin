@@ -31,7 +31,7 @@ jobs:
         run: uv run pytest -q
 
   smoke:
-    name: smoke: report + notebooks
+    name: "smoke: report + notebooks"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
