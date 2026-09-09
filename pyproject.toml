@@ -30,6 +30,11 @@ dev = [
     "ruff>=0.14",
     "mypy>=1.18",
 ]
+# notebook execution (CI smoke test, local demos)
+notebooks = [
+    "ipykernel>=6.30",
+    "nbconvert>=7.16",
+]
 
 [build-system]
 requires = ["hatchling"]

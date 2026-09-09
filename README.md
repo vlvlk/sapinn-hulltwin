@@ -56,6 +56,8 @@ uv run pytest
 4. [x] PINN-наблюдатель v0 + анализ идентифицируемости (`hulltwin.pinn.observer`)
 5. [x] Адаптер Shifts power-consumption dataset (`hulltwin.data.shifts`, `scripts/shifts_benchmark.py`)
 6. [x] Отчёт-дашборд (`hulltwin.report`, `scripts/generate_report.py`)
+7. [x] Демо-ноутбуки (`notebooks/01_synthetic_id.ipynb`, `notebooks/02_shifts_power.ipynb`)
+8. [x] CI (GitHub Actions: ruff + mypy + pytest + smoke report/notebooks)
 
 ## Демо
 
@@ -63,12 +65,27 @@ uv run pytest
 uv run python scripts/generate_report.py          # отчёт -> reports/hulltwin_report.png
 uv run python scripts/generate_report.py --days 720 --epochs 4000
 uv run python scripts/shifts_benchmark.py         # Shifts power-consumption бенчмарк
+
+# демо-ноутбуки (для ноутбука 02 сначала: uv run python scripts/download_shifts.py):
+uv run jupyter nbconvert --to notebook --execute --inplace notebooks/01_synthetic_id.ipynb
+uv run jupyter nbconvert --to notebook --execute --inplace notebooks/02_shifts_power.ipynb
+# либо интерактивно: uv run jupyter lab notebooks/
 ```
 
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`), два джоба:
+- **quality**: `ruff check` + `mypy src scripts tests` + `pytest`;
+- **smoke**: полный прогон пайплайна с укороченным обучением
+  (`generate_report.py --days 180 --epochs 500`) и headless-исполнение
+  обоих ноутбуков через `nbconvert` (без Shifts-данных ноутбук 02
+  корректно пропускает вычислительные ячейки).
+
 Результат на Shifts (физически структурированная модель, 4 калибруемых
-скаляра, train 523k записей): медианная ошибка мощности 7.1% на dev_in
-и 6.9% на сдвинутом dev_out — под сдвигом модель не деградирует
-(структура V^3 + ITTC + шероховатость + волны переносима).
+скаляра, train 531k записей): медианная ошибка мощности 7.4% на dev_in
+и 13.8% на сдвинутом dev_out — физическая структура (V^3 + ITTC +
+шероховатость + волны) смягчает деградацию под сдвигом по сравнению с
+чёрным ящиком, но полностью её не устраняет (направление будущих улучшений).
 
 Результат на синтетике (720 дней, 2 очистки): corr(k_s траектории) = 0.95,
 ошибка итоговой деградации винта k_p = 0.25%, медианная ошибка мощности 5.4%.

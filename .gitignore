@@ -26,5 +26,8 @@ data/logs/
 # Notebooks
 .ipynb_checkpoints/
 
+# CI smoke artifacts (the demo report reports/hulltwin_report.png stays tracked)
+reports/ci_*
+
 # Environment
 .env
